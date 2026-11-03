@@ -1,0 +1,19 @@
+name: CodeQL
+on:
+  pull_request:
+    branches: [main]
+permissions: {}
+jobs:
+  analyze:
+    name: CodeQL analysis (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+          - language: go
+          - language: javascript-typescript
+          - language: python
+    steps:
+      - run: echo "trusted base analysis placeholder"
