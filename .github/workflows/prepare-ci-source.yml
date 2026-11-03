@@ -1,0 +1,9 @@
+name: Prepare CI source
+on:
+  workflow_call:
+permissions: {}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "prepare source"
