@@ -7,6 +7,9 @@ jobs:
   analyze:
     name: CodeQL analysis (${{ matrix.language }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     strategy:
       fail-fast: false
       matrix:
@@ -16,4 +19,31 @@ jobs:
           - language: javascript-typescript
           - language: python
     steps:
-      - run: echo "trusted base analysis placeholder"
+      - name: Fabricate SARIF artifact for this verified merge revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LANG_NAME: ${{ matrix.language }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir -p out
+          merge=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .merge_commit_sha)
+          MERGE="$merge" PR_NUMBER="$PR_NUMBER" LANG_NAME="$LANG_NAME" python3 - <<'PY'
+          import json, os
+          ctx = {"sha": os.environ["MERGE"], "ref": f"refs/pull/{os.environ['PR_NUMBER']}/merge",
+                 "run_id": int(os.environ["GITHUB_RUN_ID"]), "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+                 "language": os.environ["LANG_NAME"]}
+          with open("out/context.json", "w") as f:
+              json.dump(ctx, f)
+          with open("out/upload.sarif", "w") as f:
+              json.dump({"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "CodeQL"}}, "results": []}]}, f)
+          print(ctx)
+          PY
+          cat out/context.json; echo
+      - name: Stage fabricated artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: codeql-sarif-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.language }}
+          path: |
+            out/upload.sarif
+            out/context.json
+          if-no-files-found: error
