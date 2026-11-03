@@ -1,0 +1,22 @@
+name: CI Probe
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  source:
+    uses: ./.github/workflows/prepare-ci-source.yml
+  build:
+    needs: [source]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo build
+  lint:
+    needs: [source]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo lint
+  test:
+    needs: [source]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo test
